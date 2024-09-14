@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<!-- saved from url=(0034)https://bernii.github.io/gauge.js/ -->
+<html>
+<meta http-equiv="Access-Control-Allow-Origin" content="*"/>
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>gauge.js</title>
+  <link href="./gauge.js_files/bootstrap.min.css" type="text/css" rel="stylesheet">
+  <link href="./gauge.js_files/main.css" type="text/css" rel="stylesheet">
+  <link href="./gauge.js_files/css" rel="stylesheet" type="text/css">
+  <script type="text/javascript" async="" src="./gauge.js_files/ga.js"></script>
+  <script type="text/javascript" src="./gauge.js_files/jscolor.js"></script>
+</head>
+<body>
+<div id="preview">
+  <canvas width="760" height="300" id="foo"></canvas>
+</div>
+<br>
+<div id="temp"><h2>Not available</h2></div>
+
+<script src="./gauge.js_files/gauge.js"></script>
+
+<script type="text/javascript">
+  // Your JavaScript code here
+  window.onload = function() {
+
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        document.getElementById("temp").innerHTML = this.responseText;
+      }
+    };
+    xhttp.open("GET", "http://192.168.4.1/temperature", true);
+    xhttp.send();
+
+    update();
+  };
+
+
+  function update() {
+    //var opts = {}
+
+    var opts = {
+      angle: 0.15, // The span of the gauge arc
+      lineWidth: 0.44, // The line thickness
+      radiusScale: 1, // Relative radius
+      pointer: {
+        length: 0.6, // // Relative to gauge radius
+        strokeWidth: 0.035, // The thickness
+        color: '#000000' // Fill color
+      },
+      limitMax: false,     // If false, max value increases automatically if value > maxValue
+      limitMin: false,     // If true, the min value of the gauge will be fixed
+      colorStart: '#6FADCF',   // Colors
+      colorStop: '#8FC0DA',    // just experiment with them
+      strokeColor: '#E0E0E0',  // to see which ones work best for you
+      generateGradient: true,
+      highDpiSupport: true,     // High resolution support
+
+    };
+
+    var target = document.getElementById('foo'); // your canvas element
+    var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
+    gauge.maxValue = 3000; // set max gauge value
+    gauge.setMinValue(0);  // Prefer setter over gauge.minValue = 0
+    gauge.animationSpeed = 57; // set animation speed (32 is default value)
+    gauge.set(1975); // set actual value
+
+    var tmp_opts = opts;
+    tmp_opts.renderTicks = {};
+
+    $('.opts input[min], .opts .color').not('.renderTicks').each(function() {
+      var val = $(this).hasClass("color") ? this.value : parseFloat(this.value);
+      if($(this).hasClass("color")){
+        val = "#" + val;
+      }
+      if(this.name.indexOf("lineWidth") != -1 ||
+        this.name.indexOf("radiusScale") != -1 ||
+        this.name.indexOf("angle") != -1 ||
+
+        this.name.indexOf("pointer.length") != -1){
+        val /= 100;
+      }else if(this.name.indexOf("pointer.strokeWidth") != -1){
+        val /= 1000;
+      }
+      $('#opt-' + this.name.replace(".", "-")).text(val);
+      if(this.name.indexOf(".") != -1){
+      	var elems = this.name.split(".");
+      	var tmp_opts = opts;
+      	for(var i=0; i<elems.length - 1; i++){
+      		if(!(elems[i] in tmp_opts)){
+      			tmp_opts[elems[i]] = {};
+      		}
+      		tmp_opts = tmp_opts[elems[i]];
+      	}
+      	tmp_opts[elems[elems.length - 1]] = val;
+      }else if($(this).hasClass("color")){
+        // color picker is removing # from color values
+      	opts[this.name] = "#" + this.value
+        $('#opt-' + this.name.replace(".", "-")).text("#" + this.value);
+      }else{
+      	opts[this.name] = val;
+      }
+      if(this.name == "currval"){
+      	// update current demo gauge
+      	demoGauge.set(parseInt(this.value));
+      	AnimationUpdater.run();
+      }
+    });
+    $('#opts input:checkbox').each(function() {
+      opts[this.name] = this.checked;
+      $('#opt-' + this.name).text(this.checked);
+    });
+
+  }
+
+</script>
+
+</body></html>

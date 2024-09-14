@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<meta http-equiv="Access-Control-Allow-Origin" content="*"/>
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>gauge.js</title>
+  <link href="./gauge.js_files/bootstrap.min.css" type="text/css" rel="stylesheet">
+  <link href="./gauge.js_files/main.css" type="text/css" rel="stylesheet">
+  <link href="./gauge.js_files/css" rel="stylesheet" type="text/css">
+  <script type="text/javascript" async="" src="./gauge.js_files/ga.js"></script>
+  <script type="text/javascript" src="./gauge.js_files/jscolor.js"></script>
+  <link rel="stylesheet" href="gauge.js_files/main.css">
+  <script src="gauge.js_files/jscolor.js"></script>
+</head>
+<body>
+<canvas width=380 height=150 id="canvas-fuel"></canvas>
+
+<canvas width=380 height=150 id="canvas-temp"></canvas>
+
+<script src="./gauge.js_files/gauge.js"></script>
+
+<script type="text/javascript">
+
+
+
+  var opts = {
+    angle: -0.01, // The span of the gauge arc
+    lineWidth: 0.20, // The line thickness
+    radiusScale: 1, // Relative radius
+    pointer: {
+      length: 0.5, // // Relative to gauge radius
+      strokeWidth: 0.035, // The thickness
+      color: '#6F6EA0' // Fill color
+    },
+    limitMax: 8,     // If false, max value increases automatically if value > maxValue
+    limitMin: 0,     // If true, the min value of the gauge will be fixed
+    colorStart: '#6F6EA0',   // Colors
+    colorStop: '#C0C0DB',    // just experiment with them
+    strokeColor: '#EEEEEE',  // to see which ones work best for you
+    generateGradient: true,
+    highDpiSupport: true,     // High resolution support
+    // renderTicks is Optional
+    renderTicks: {
+      divisions: 4,
+      divWidth: 1.1,
+      divLength: 1,
+      divColor: '#333333',
+      subDivisions: 2,
+      subLength: 0.5,
+      subWidth: 0.6,
+      subColor: '#666666'
+    },
+    staticZones: [
+      {strokeStyle: "#f03e3e", min: 0, max: 12.5},
+      {strokeStyle: "#e1cc00", min: 12.5, max: 50},
+      {strokeStyle: "#30b32d", min: 50, max: 100},
+    ],
+    staticLabels: {
+      font: "14px sans-serif",  // Specifies font
+      labels: [0,50,100],  // Print labels at these values
+      color: "#000000",  // Optional: Label text color
+      fractionDigits: 0  // Optional: Numerical precision. 0=round off.
+    },
+  };
+  var targetF = document.getElementById('canvas-fuel'); // your canvas element
+  var gaugeF = new Gauge(targetF).setOptions(opts); // create sexy gauge!
+  gaugeF.maxValue = 100; // set max gauge value
+  gaugeF.setMinValue(0);  // Prefer setter over gaugeF.minValue = 0
+  gaugeF.animationSpeed = 32; // set animation speed (32 is default value)
+  gaugeF.set(6); // set actual value
+
+  var targetT = document.getElementById('canvas-temp'); // your canvas element
+  var gaugeT = new Gauge(targetT).setOptions(opts); // create sexy gauge!
+  gaugeT.maxValue = 100; // set max gauge value
+  gaugeT.setMinValue(0);  // Prefer setter over gaugeF.minValue = 0
+  gaugeT.animationSpeed = 32; // set animation speed (32 is default value)
+  gaugeT.set(6); // set actual value
+
+  setInterval(function ( ) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        gaugeF.set(this.responseText);
+      }
+    };
+    xhttp.open("GET", "http://192.168.4.1/temperature", true);
+    xhttp.send();
+  }, 5000 ) ;
+</script>
+
+</body></html>
