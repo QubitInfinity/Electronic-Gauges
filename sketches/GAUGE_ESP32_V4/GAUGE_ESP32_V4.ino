@@ -9,12 +9,16 @@
 #define TFT_DC 15
 #define LIGHTER_BLUE display.color565(100, 150, 255)
 
+TaskHandle_t Task1;
+float voltage;
+int analogValue;
+
 // const char* bmpFileName = "/temp.bmp";
 const char* bmpFileName = "/fuel.bmp";
 Adafruit_ST7789 display = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
-GFXcanvas16 canvas(239, 239); 
-// GFXcanvas16 imgCanvas(20, 20); 
+GFXcanvas16 canvas(239, 239);
+// GFXcanvas16 imgCanvas(20, 20);
 
 int bmpWidth = 240;
 int bmpHeight = 240;
@@ -31,8 +35,6 @@ int infoCount = 0;
 float needleAngle = -45;        // Starting angle in degrees (Empty)
 float minAngle = -45;           // Minimum angle (Empty)
 float maxAngle = 225;           // Maximum angle (Full)
-float needleStep = 2;         // Step size for the needle movement
-bool increasing = true;         // Direction flag
 
 // Needle center coordinates and length
 int centerX = bmpWidth / 2;
@@ -64,10 +66,20 @@ int y2 = centerY + offsetY;
 
 void setup() {
   Serial.begin(9600);
-  while (!Serial); 
+  while (!Serial);
   Serial.println("Setup starting ...");
+
+  xTaskCreatePinnedToCore(
+                          Task1code,   /* Task function. */
+                          "Task1",     /* name of task. */
+                          1000,       /* Stack size of task */
+                          NULL,        /* parameter of the task */
+                          1,           /* priority of the task */
+                          &Task1,      /* Task handle to keep track of created task */
+                          1);          /* loop() runs on 1 */
   delay(1000);
 
+  analogSetAttenuation(ADC_11db);
   if (!fileBuffer || !screenBuffer) {
     Serial.println("Failed to allocate memory for buffers");
     return;
@@ -85,6 +97,7 @@ void setup() {
   renderBMP();
 
   // imgCanvas.fillScreen(ST77XX_CYAN);
+
 }
 
 void loop() {
@@ -97,25 +110,48 @@ void loop() {
 
   if(++infoCount == 100){
     Serial.println("Redraw time: " + String(millis() - t1));
+    Serial.print("Analog: ");
+    Serial.print(analogValue);
+    Serial.print(", Voltage: ");
+    Serial.println(voltage);
+    Serial.print("Free DRAM: ");
+    Serial.println(heap_caps_get_free_size(MALLOC_CAP_8BIT));
+
+    // Free memory in IRAM (Instruction RAM)
+    Serial.print("Free IRAM: ");
+    Serial.println(heap_caps_get_free_size(MALLOC_CAP_EXEC));
+
+    // Free memory that is DMA-capable
+    Serial.print("Free DMA-capable Memory: ");
+    Serial.println(heap_caps_get_free_size(MALLOC_CAP_DMA));
     infoCount = 0;
   }
 
-  // Check needle direction and adjust angle accordingly
-  if (increasing) {
-    needleAngle += needleStep;
-    if (needleAngle >= maxAngle) {
-      needleAngle = maxAngle;
-      increasing = false; // Reverse direction at full
-    }
-  } else {
-    needleAngle -= needleStep;
-    if (needleAngle <= minAngle) {
-      needleAngle = minAngle;
-      increasing = true; // Reverse direction at empty
-    }
-  }
-  // delay(20); // Adjust delay for smoother or faster animation
+
+
   yield();
+
+}
+
+void Task1code( void * pvParameters ){
+  Serial.print("Task1 running on core ");
+  Serial.println(xPortGetCoreID());
+  for(;;){
+      for(int t = 0; t<2;t++){
+        // read the input on analog pin GPIO36:
+        analogValue = analogRead(36);
+        // Rescale to potentiometer's voltage (from 0V to 3.3V):
+        voltage = (voltage + floatMap(analogValue, 0, 4095, -45, 225))/2;
+        delay(5);
+      }
+
+      needleAngle = needleAngle + (voltage - needleAngle)/3;
+      delay(20);
+  }
+}
+
+float floatMap(float x, float in_min, float in_max, float out_min, float out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 void renderBMP() {
